@@ -1,63 +1,236 @@
-# Keratin AuthN
+---
+title: "Hello World - Go"
+linkTitle: "Go"
+weight: 1
+type: "docs"
+---
 
-[![Keratin Pangolin](https://keratin.tech/pangolin-logo-dark.gif)](https://keratin.tech)
-A modern authentication backend service. ([https://keratin.tech](https://keratin.tech))
+# Hello World - Go
 
-[![Gitter](https://badges.gitter.im/keratin/authn-server.svg)](https://gitter.im/keratin/authn-server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)[![Build Status](https://travis-ci.org/keratin/authn-server.svg?branch=master)](https://travis-ci.org/keratin/authn-server)[![Coverage Status](https://coveralls.io/repos/github/keratin/authn-server/badge.svg)](https://coveralls.io/github/keratin/authn-server)[![Go Report](https://goreportcard.com/badge/github.com/keratin/authn-server)](https://goreportcard.com/report/github.com/keratin/authn-server)
+This guide describes the steps required to to create the `helloworld-go` sample app
+and deploy it to your cluster.
+The sample app reads a `TARGET` environment variable, and prints `Hello ${TARGET}!`.
+If `TARGET` is not specified, `World` is used as the default value.
 
-## Related
+## Prerequisites
 
-This repository builds a backend Go service that provides secured endpoints related to accounts and passwords. You must integrate it with your application's frontend(s) and backend(s).
+You will need:
+- A Kubernetes cluster with [Knative installed and DNS configured](../../../../install/).
+- [Docker](https://www.docker.com) installed and running on your local machine, and a Docker Hub account configured.
+- Optional: You can use the Knative CLI client [`kn`](https://github.com/knative/client/releases) to simplify resource creation and deployment. Alternatively, you can use `kubectl` to apply resource files directly.
 
-Client libraries are currently available for:
+## Building
 
-* Backends: [Ruby](https://github.com/keratin/authn-rb) • [Go](https://github.com/keratin/authn-go) • [NodeJS](https://github.com/keratin/authn-node)
-* Frontends: [JavaScript](https://github.com/keratin/authn-js)
+1. Create a basic web server which listens on port 8080, by copying the following code into a new file named `helloworld.go`:
 
-If you are missing a client library, please [submit a request](https://github.com/keratin/authn-server/issues).
+   ```go
+   package main
 
-## Implementation
+   import (
+     "fmt"
+     "log"
+     "net/http"
+     "os"
+   )
 
-[Documentation](https://github.com/keratin/authn-server/blob/master/docs/README.md)
+   func handler(w http.ResponseWriter, r *http.Request) {
+     log.Print("helloworld: received a request")
+     target := os.Getenv("TARGET")
+     if target == "" {
+       target = "World"
+     }
+     fmt.Fprintf(w, "Hello %s!\n", target)
+   }
 
-## Deployment
+   func main() {
+     log.Print("helloworld: starting server...")
 
-[Documentation](https://github.com/keratin/authn-server/blob/master/docs/README.md)
+     http.HandleFunc("/", handler)
 
-## Configuration
+     port := os.Getenv("PORT")
+     if port == "" {
+       port = "8080"
+     }
 
-All configuration is through ENV variables.
+     log.Printf("helloworld: listening on port %s", port)
+     log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+   }
+   ```
 
-[Documentation](https://github.com/keratin/authn-server/blob/master/docs/config.md)
+   You can also download a working copy of the sample, by running the
+   following commands:
 
-## Contributing
+   ```bash
+   git clone -b "{{ branch }}" https://github.com/knative/docs knative-docs
+   cd knative-docs/docs/serving/samples/hello-world/helloworld-go
+   ```
 
-Welcome! Please familiarize yourself with the [CONTRIBUTING](CONTRIBUTING.md) doc and the [CODE OF CONDUCT](CODE_OF_CONDUCT.md).
 
-Here's how the dev environment works:
+1. Navigate to your project directory and copy the following code into a new file named `Dockerfile`:
 
-1. `go get github.com/keratin/authn-server`
-2. Install Docker and docker-compose.
-3. Run `make test` to ensure a clean build
+   ```docker
+   # Use the official Golang image to create a build artifact.
+   # This is based on Debian and sets the GOPATH to /go.
+   FROM golang:1.13 as builder
 
-To run a dev server:
+   # Create and change to the app directory.
+   WORKDIR /app
 
-1. Create a own `.env` file with desired configuration.
-2. Run `make migrate`
-3. Run `make server`
+   # Retrieve application dependencies using go modules.
+   # Allows container builds to reuse downloaded dependencies.
+   COPY go.* ./
+   RUN go mod download
 
-To build a compiled server for integration testing:
+   # Copy local code to the container image.
+   COPY . ./
 
-1. Run `make build`
-2. Execute `dist/authn` with appropriate ENV variables
+   # Build the binary.
+   # -mod=readonly ensures immutable go.mod and go.sum in container builds.
+   RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server
 
-To build a Docker image for integration testing:
+   # Use the official Alpine image for a lean production container.
+   # https://hub.docker.com/_/alpine
+   # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
+   FROM alpine:3
+   RUN apk add --no-cache ca-certificates
 
-1. Run `make docker`
-2. Start the `keratin/authn-server:latest` image with appropriate ENV variables
+   # Copy the binary to the production image from the builder stage.
+   COPY --from=builder /app/server /server
 
-## COPYRIGHT & LICENSE
+   # Run the web service on container startup.
+   CMD ["/server"]
+   ```
 
-Copyright (c) 2016-2020 Lance Ivy
+1. Use the Go tool to create a
+   [`go.mod`](https://github.com/golang/go/wiki/Modules#gomod) manifest.
 
-Keratin AuthN is distributed under the terms of the LGPLv3. See [LICENSE-LGPLv3](LICENSE-LGPLv3) for details.
+   ```bash
+   go mod init github.com/knative/docs/docs/serving/samples/hello-world/helloworld-go
+   ```
+
+## Deploying
+
+1. To build the sample code into a container, and push using Docker Hub, enter the following commands and replace `{username}` with your Docker Hub username:
+
+   ```bash
+   # Build the container on your local machine
+   docker build -t {username}/helloworld-go .
+
+   # Push the container to docker registry
+   docker push {username}/helloworld-go
+   ```
+
+1. After the build has completed and the container is pushed to docker hub, you
+   can deploy the app into your cluster.  Choose one of the following methods:
+
+
+
+=== "yaml"
+
+       1. Create a new file, `service.yaml` and copy the following service definition
+          into the file. Make sure to replace `{username}` with your Docker Hub
+          username.
+
+          ```yaml
+          apiVersion: serving.knative.dev/v1
+          kind: Service
+          metadata:
+            name: helloworld-go
+            namespace: default
+          spec:
+            template:
+              spec:
+                containers:
+                  - image: docker.io/{username}/helloworld-go
+                    env:
+                      - name: TARGET
+                        value: "Go Sample v1"
+          ```
+
+          Check that the container image value in the `service.yaml` file matches the container you built in the previous step.
+
+       1. Apply the configuration using `kubectl`:
+
+          ```bash
+          kubectl apply --filename service.yaml
+          ```
+
+          After your service is created, Knative will perform the following steps:
+
+          - Create a new immutable revision for this version of the app.
+          - Network programming to create a route, ingress, service, and load balance
+            for your app.
+          - Automatically scale your pods up and down (including to zero active pods).
+
+       1. Run the following command to find the domain URL for your service:
+
+          ```bash
+          kubectl get ksvc helloworld-go  --output=custom-columns=NAME:.metadata.name,URL:.status.url
+          ```
+
+          Example:
+
+          ```bash
+           NAME                URL
+           helloworld-go       http://helloworld-go.default.1.2.3.4.xip.io
+          ```
+
+
+=== "kn"
+
+       Use `kn` to deploy the service:
+
+       ```bash
+       kn service create helloworld-go --image=docker.io/{username}/helloworld-go --env TARGET="Go Sample v1"
+       ```
+
+       You should see output like this:
+       ```bash
+       Creating service 'helloworld-go' in namespace 'default':
+
+         0.031s The Configuration is still working to reflect the latest desired specification.
+         0.051s The Route is still working to reflect the latest desired specification.
+         0.076s Configuration "helloworld-go" is waiting for a Revision to become ready.
+        15.694s ...
+        15.738s Ingress has not yet been reconciled.
+        15.784s Waiting for Envoys to receive Endpoints data.
+        16.066s Waiting for load balancer to be ready
+        16.237s Ready to serve.
+
+       Service 'helloworld-go' created to latest revision 'helloworld-go-jjzgd-1' is available at URL:
+       http://helloworld-go.default.1.2.3.4.xip.io
+       ```
+
+       You can then access your service through the resulting URL.
+
+
+
+
+
+
+## Verifying
+
+1. Now you can make a request to your app and see the result. Replace
+   the URL below with the URL returned in the previous command.
+
+   ```bash
+   curl http://helloworld-go.default.1.2.3.4.sslip.io
+   Hello Go Sample v1!
+   ```
+
+   > Note: Add `-v` option to get more detail if the `curl` command failed.
+
+## Removing
+
+To remove the sample app from your cluster, delete the service record:
+
+
+=== "kubectl"
+    ```bash
+    kubectl delete --filename service.yaml
+    ```
+
+=== "kn"
+    ```bash
+    kn service delete helloworld-go
+    ```

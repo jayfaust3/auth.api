@@ -1,37 +1,22 @@
-version: "3"
+version: '3.8'
+
 services:
-  redis:
-    image: redis
+  auth-api:
+    image: auth-api
+    container_name: auth-api
+    hostname: auth-api
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      - TARGET=${TARGET}
+      - PORT=${PORT}
     ports:
-      - "${REDIS_PORT:-8701}:6379"
-
-  mysql:
-    image: mysql:5.7
+      - 3011:80
     platform: linux/amd64
-    ports:
-      - "${MYSQL_PORT:-8702}:3306"
-    environment:
-      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
-      - MYSQL_ROOT_PASSWORD
+    restart: always
 
-  postgres:
-    image: postgres:9.6
-    ports:
-      - "${POSTGRES_PORT:-8703}:5432"
-    environment:
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_DB
-
-  server:
-    image: keratin/authn-server:latest
-    ports:
-      - "7002:3000"
-    environment:
-      - APP_DOMAINS
-      - AUTHN_URL
-      - SECRET_KEY_BASE
-      - DATABASE_URL=sqlite3://localhost/dev
-      - REDIS_URL=redis://redis:6379/11
-    depends_on:
-      - redis
+networks:
+  default:
+    external: true
+    name: local-network
