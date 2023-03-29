@@ -1,7 +1,7 @@
 package token
 
 import (
-	"jwt"
+	"github.com/golang-jwt/jwt"
 )
 
 type TokenPayload struct {
