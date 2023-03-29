@@ -1,7 +1,7 @@
 package services
 
 import (
-	"json"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
