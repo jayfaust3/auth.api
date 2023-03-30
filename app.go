@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/jayfaust3/auth.api/pkg/handlers"
 	"log"
 	"net/http"
 	"os"
@@ -23,4 +25,8 @@ func main() {
 
 	log.Printf("listening on port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+
+	router := mux.NewRouter()
+
+	router.HandleFunc("/auth/token", handlers.getToken).Methods(http.MethodGet)
 }

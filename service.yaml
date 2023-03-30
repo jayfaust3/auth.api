@@ -9,5 +9,9 @@ spec:
       containers:
       - image: docker.io/jayfaustdev/auth-api
         env:
+        - name: AUTH_ISSUER
+        - value: AUTH_ISSUER
+        - name: AUTH_AUDIENCE
+        - value: AUTH_AUDIENCE
         - name: PORT
           value: 80

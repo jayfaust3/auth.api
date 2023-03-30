@@ -9,7 +9,8 @@ services:
       context: .
       dockerfile: ./Dockerfile
     environment:
-      - TARGET=${TARGET}
+      - AUTH_ISSUER=${AUTH_ISSUER}
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE}
       - PORT=${PORT}
     ports:
       - 3011:80
