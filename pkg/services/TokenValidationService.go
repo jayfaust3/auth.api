@@ -1,15 +1,20 @@
 package services
 
 import (
-	"github.com/golang-jwt/jwt"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jayfaust3/auth.api/pkg/models/application/token"
 )
 
-func validateToken(encodedToken: string) (TokenPayload, error) {
+func validateToken(encodedToken string) (token.TokenPayload, error) {
 	claimsStruct := token.TokenPayload{}
 
 	token, err := jwt.ParseWithClaims(
-		tokenString,
+		encodedToken,
 		&claimsStruct,
 		func(token *jwt.Token) (interface{}, error) {
 			keyId := fmt.Sprintf("%s", token.Header["kid"])
