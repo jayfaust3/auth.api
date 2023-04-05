@@ -10,14 +10,8 @@ import (
 	"github.com/jayfaust3/auth.api/pkg/handlers"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	log.Print("Received a request")
-}
-
 func main() {
 	log.Print("starting server...")
-
-	http.HandleFunc("/", handler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -29,5 +23,5 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("api/auth/token", handlers.GetToken).Methods(http.MethodGet)
+	router.HandleFunc("/api/auth/token", handlers.GetToken).Methods(http.MethodGet)
 }
