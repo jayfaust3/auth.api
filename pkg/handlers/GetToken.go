@@ -1,38 +1,39 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/jayfaust3/auth.api/pkg/api/responses"
+	"github.com/jayfaust3/auth.api/pkg/api/responses/auth"
+	"github.com/jayfaust3/auth.api/pkg/services"
+	"github.com/jayfaust3/auth.api/pkg/utils"
 )
 
-func getToken(w http.ResponseWriter, r *http.Request) {
-	tokenFromHeader := r.Header.Get("Authorization")
+func GetToken(w http.ResponseWriter, r *http.Request) {
+	authHeaderValue := r.Header.Get("Authorization")
 
-	generatedToken, err := services.getToken(tokenFromHeader)
+	var encodedToken string
 
-	respondWithJSON(w, 200, struct {
-		Data struct {
-			Token string `json:"token"`
-		} `json:"data"`
-	}{
-		Data: {
-			Token: generatedToken,
-		},
-	})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) error {
-	response, err := json.Marshal(payload)
-	if err != nil {
-		return err
+	if strings.Contains(authHeaderValue, "Bearer") {
+		encodedToken = strings.ReplaceAll(authHeaderValue, "Bearer", " ")
+	} else {
+		encodedToken = authHeaderValue
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(code)
-	w.Write(response)
-	return nil
-}
 
-func respondWithError(w http.ResponseWriter, code int, msg string) error {
-	return respondWithJSON(w, code, map[string]string{"error": msg})
+	generatedToken, err := services.GetToken(encodedToken)
+
+	if err != nil {
+		var apiResponse responses.ApiResponse[auth.AuthTokenResponse]
+
+		var tokenResponse auth.AuthTokenResponse
+
+		tokenResponse.AuthToken = generatedToken
+
+		apiResponse.Data = tokenResponse
+
+		utils.RespondWithJSON(w, 200, apiResponse)
+	} else {
+		utils.RespondWithError(w, 400, "Unable to verify token")
+	}
 }

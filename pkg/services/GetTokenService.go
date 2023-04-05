@@ -1,11 +1,11 @@
 package services
 
-import (
-	"github.com/jayfaust3/auth.api/pkg/models/application/token"
-)
+import "fmt"
 
-func getToken(encodedToken: string) (string, error) {
-	decodedToken := validateToken(encodedToken)
+func GetToken(encodedToken string) (string, error) {
+	decodedToken, err := ValidateToken(encodedToken)
 
-	return encodedToken, nil
+	fmt.Print("decodedToken: ", decodedToken)
+
+	return encodedToken, err
 }

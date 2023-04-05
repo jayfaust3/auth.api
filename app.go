@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/jayfaust3/auth.api/pkg/handlers"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/mux"
+	"github.com/jayfaust3/auth.api/pkg/handlers"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -28,5 +29,5 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/auth/token", handlers.getToken).Methods(http.MethodGet)
+	router.HandleFunc("api/auth/token", handlers.GetToken).Methods(http.MethodGet)
 }

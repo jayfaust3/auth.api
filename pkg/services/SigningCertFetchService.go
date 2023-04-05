@@ -2,12 +2,12 @@ package services
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
+	"io/ioutil"
 	"net/http"
-	"os"
 )
 
-func getSigningCert(keyID string) (string, error) {
+func GetSigningCert(keyID string) (string, error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
 	if err != nil {
 		return "", err
