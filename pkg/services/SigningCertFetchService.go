@@ -5,10 +5,16 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 func GetSigningCert(keyID string) (string, error) {
-	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
+	signingCertEndpoint := os.Getenv("GOOGLE_AUTH_CERT_ENDPOINT")
+	if signingCertEndpoint == "" {
+		return "", errors.New("Google auth cert endpoint not configured")
+	}
+
+	resp, err := http.Get(signingCertEndpoint)
 	if err != nil {
 		return "", err
 	}

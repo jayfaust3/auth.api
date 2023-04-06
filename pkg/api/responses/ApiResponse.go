@@ -1,5 +1,5 @@
 package responses
 
 type ApiResponse[TData any] struct {
-	Data TData
+	Data TData `json:"data"`
 }

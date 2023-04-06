@@ -16,7 +16,7 @@ func GetToken(w http.ResponseWriter, r *http.Request) {
 	var encodedToken string
 
 	if strings.Contains(authHeaderValue, "Bearer") {
-		encodedToken = strings.ReplaceAll(authHeaderValue, "Bearer", " ")
+		encodedToken = strings.ReplaceAll(authHeaderValue, "Bearer ", "")
 	} else {
 		encodedToken = authHeaderValue
 	}

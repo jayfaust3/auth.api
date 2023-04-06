@@ -10,8 +10,10 @@ spec:
       - image: docker.io/jayfaustdev/auth-api
         env:
         - name: AUTH_ISSUER
-        - value: AUTH_ISSUER
+          value: AUTH_ISSUER
         - name: AUTH_AUDIENCE
-        - value: AUTH_AUDIENCE
+          value: AUTH_AUDIENCE
+        - name: GOOGLE_AUTH_CERT_ENDPOINT
+          value: https://www.googleapis.com/oauth2/v1/certs
         - name: PORT
           value: 80

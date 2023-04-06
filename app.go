@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,9 +18,9 @@ func main() {
 	}
 
 	log.Printf("listening on port %s", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
-
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/auth/token", handlers.GetToken).Methods(http.MethodGet)
+
+	http.ListenAndServe(":"+port, router)
 }
