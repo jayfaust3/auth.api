@@ -1,11 +1,19 @@
 package services
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/golang-jwt/jwt/v4"
+)
 
 func GetToken(encodedToken string) (string, error) {
-	decodedToken, err := ValidateToken(encodedToken)
+	decodedToken, publicKey, err := ValidateToken(encodedToken)
 
-	fmt.Print("decodedToken: ", decodedToken)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, decodedToken)
+	log.Printf("new token generated")
 
-	return encodedToken, err
+	reEncodedToken, err := token.SignedString(publicKey)
+	log.Printf("error occurred, error: " + err.Error())
+
+	return reEncodedToken, err
 }

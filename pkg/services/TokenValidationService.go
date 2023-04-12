@@ -1,6 +1,7 @@
 package services
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"os"
@@ -12,8 +13,10 @@ import (
 
 type TokenPayload = token.TokenPayload
 
-func ValidateToken(encodedToken string) (TokenPayload, error) {
+func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, error) {
 	claimsStruct := token.TokenPayload{}
+
+	var publicKey rsa.PublicKey
 
 	token, err := jwt.ParseWithClaims(
 		encodedToken,
@@ -29,6 +32,8 @@ func ValidateToken(encodedToken string) (TokenPayload, error) {
 
 			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
 
+			publicKey = *key
+
 			if err != nil {
 				return nil, err
 			}
@@ -38,26 +43,26 @@ func ValidateToken(encodedToken string) (TokenPayload, error) {
 	)
 
 	if err != nil {
-		return TokenPayload{}, err
+		return TokenPayload{}, publicKey, err
 	}
 
 	claims, ok := token.Claims.(*TokenPayload)
 
 	if !ok {
-		return TokenPayload{}, errors.New("Invalid token")
+		return TokenPayload{}, publicKey, errors.New("Invalid token")
 	}
 
 	if claims.Issuer != os.Getenv("AUTH_ISSUER") {
-		return TokenPayload{}, errors.New("iss is invalid")
+		return TokenPayload{}, publicKey, errors.New("iss is invalid")
 	}
 
 	if claims.Audience != os.Getenv("AUTH_AUDIENCE") {
-		return TokenPayload{}, errors.New("aud is invalid")
+		return TokenPayload{}, publicKey, errors.New("aud is invalid")
 	}
 
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
-		return TokenPayload{}, errors.New("JWT is expired")
+		return TokenPayload{}, publicKey, errors.New("JWT is expired")
 	}
 
-	return *claims, nil
+	return *claims, publicKey, nil
 }

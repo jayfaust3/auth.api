@@ -11,6 +11,7 @@ services:
     environment:
       - AUTH_ISSUER=${AUTH_ISSUER}
       - AUTH_AUDIENCE=${AUTH_AUDIENCE}
+      - GOOGLE_AUTH_CERT_ENDPOINT=${GOOGLE_AUTH_CERT_ENDPOINT}
       - PORT=${PORT}
     ports:
       - 3011:80
