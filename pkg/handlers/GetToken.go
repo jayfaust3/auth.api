@@ -23,7 +23,7 @@ func GetToken(w http.ResponseWriter, r *http.Request) {
 
 	generatedToken, err := services.GetToken(encodedToken)
 
-	if err != nil {
+	if err == nil {
 		var apiResponse responses.ApiResponse[auth.AuthTokenResponse]
 
 		var tokenResponse auth.AuthTokenResponse
@@ -34,6 +34,6 @@ func GetToken(w http.ResponseWriter, r *http.Request) {
 
 		utils.RespondWithJSON(w, 200, apiResponse)
 	} else {
-		utils.RespondWithError(w, 400, "Unable to verify token")
+		utils.RespondWithError(w, 400, "Unable to verify token, error: "+err.Error())
 	}
 }

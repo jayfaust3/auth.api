@@ -1,7 +1,7 @@
 package services
 
 import (
-	"crypto/rsa"
+	// "crypto/rsa"
 	"errors"
 	"fmt"
 	"os"
@@ -13,10 +13,12 @@ import (
 
 type TokenPayload = token.TokenPayload
 
-func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, error) {
+func ValidateToken(encodedToken string) (token.TokenPayload, string, error) {
+	// func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, error) {
 	claimsStruct := token.TokenPayload{}
 
-	var publicKey rsa.PublicKey
+	// var publicKey rsa.PublicKey
+	var pemKey string
 
 	token, err := jwt.ParseWithClaims(
 		encodedToken,
@@ -25,6 +27,7 @@ func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, erro
 			keyId := fmt.Sprintf("%s", token.Header["kid"])
 
 			pem, err := GetSigningCert(keyId)
+			pemKey = pem
 
 			if err != nil {
 				return nil, err
@@ -32,7 +35,7 @@ func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, erro
 
 			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
 
-			publicKey = *key
+			// publicKey = *key
 
 			if err != nil {
 				return nil, err
@@ -43,26 +46,32 @@ func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, erro
 	)
 
 	if err != nil {
-		return TokenPayload{}, publicKey, err
+		// return TokenPayload{}, publicKey, err
+		return TokenPayload{}, pemKey, err
 	}
 
 	claims, ok := token.Claims.(*TokenPayload)
 
 	if !ok {
-		return TokenPayload{}, publicKey, errors.New("Invalid token")
+		// return TokenPayload{}, publicKey, errors.New("Invalid token")
+		return TokenPayload{}, pemKey, errors.New("Invalid token")
 	}
 
 	if claims.Issuer != os.Getenv("AUTH_ISSUER") {
-		return TokenPayload{}, publicKey, errors.New("iss is invalid")
+		// return TokenPayload{}, publicKey, errors.New("iss is invalid")
+		return TokenPayload{}, pemKey, errors.New("iss is invalid")
 	}
 
 	if claims.Audience != os.Getenv("AUTH_AUDIENCE") {
-		return TokenPayload{}, publicKey, errors.New("aud is invalid")
+		// return TokenPayload{}, publicKey, errors.New("aud is invalid")
+		return TokenPayload{}, pemKey, errors.New("aud is invalid")
 	}
 
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
-		return TokenPayload{}, publicKey, errors.New("JWT is expired")
+		// return TokenPayload{}, publicKey, errors.New("JWT is expired")
+		return TokenPayload{}, pemKey, errors.New("JWT is expired")
 	}
 
-	return *claims, publicKey, nil
+	// return *claims, publicKey, nil
+	return *claims, pemKey, nil
 }

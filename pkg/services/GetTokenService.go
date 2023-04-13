@@ -7,13 +7,24 @@ import (
 )
 
 func GetToken(encodedToken string) (string, error) {
-	decodedToken, publicKey, err := ValidateToken(encodedToken)
+	decodedToken, pemKey, err := ValidateToken(encodedToken)
+
+	if err != nil {
+		return encodedToken, err
+	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, decodedToken)
 	log.Printf("new token generated")
 
-	reEncodedToken, err := token.SignedString(publicKey)
-	log.Printf("error occurred, error: " + err.Error())
+	byteKey := []byte(pemKey)
+	log.Printf("byteKey generated")
+	reEncodedToken, err := token.SignedString(byteKey)
+
+	log.Printf("reEncodedToken: " + reEncodedToken)
+
+	if err != nil {
+		return encodedToken, err
+	}
 
 	return reEncodedToken, err
 }
