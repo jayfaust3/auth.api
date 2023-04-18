@@ -2,6 +2,7 @@ package clients
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -59,7 +60,11 @@ func GetUserFromEmail(email string) (res int, err error) {
 	defer cancel()
 
 	for d := range msgs {
-		messageBytes := d.Body
+		messageDataBytes := d.Body
+		messageDataJSON = string(messageDataBytes)
+		var messageData interface 
+		jsonErr := json.Unmarshal(messageDataJSON, &mmessageData)
+
 
 		response := ""
 		err = ch.PublishWithContext(ctx,
