@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/jayfaust3/auth.api/pkg/models/application/user"
+	"github.com/jayfaust3/auth.api/pkg/models/messaging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -17,7 +19,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func GetUserFromEmail(email string) (res int, err error) {
+func GetUserFromEmail(email string) (res user.User, err error) {
 	rabbitUserName := os.Getenv("RABBITMQ_USERNAME")
 	rabbitPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitHost := os.Getenv("RABBITMQ_HOST")
@@ -59,26 +61,29 @@ func GetUserFromEmail(email string) (res int, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	response := ""
+	err = ch.PublishWithContext(ctx,
+		rabbitExchange, // exchange
+		rabbitQueue,    // routing key
+		false,          // mandatory
+		false,          // immediate
+		amqp.Publishing{
+			ContentType:   "text/plain",
+			CorrelationId: "",
+			ReplyTo:       q.Name,
+			Body:          []byte(response),
+		})
+	failOnError(err, "Failed to publish a message")
+
 	for d := range msgs {
 		messageDataBytes := d.Body
-		messageDataJSON = string(messageDataBytes)
-		var messageData interface 
-		jsonErr := json.Unmarshal(messageDataJSON, &mmessageData)
+		// messageDataJSON := string(messageDataBytes)
+		var messageData messaging.Message[user.User]
+		err := json.Unmarshal(messageDataBytes, &messageData)
 
-
-		response := ""
-		err = ch.PublishWithContext(ctx,
-			rabbitExchange, // exchange
-			d.RoutingKey,   // routing key
-			false,          // mandatory
-			false,          // immediate
-			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: d.CorrelationId,
-				ReplyTo:       q.Name,
-				Body:          []byte(response),
-			})
-		failOnError(err, "Failed to publish a message")
+		failOnError(err, "Failed to extract user from message")
+		res = messageData.Data
+		break
 	}
 
 	return
