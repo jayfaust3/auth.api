@@ -9,9 +9,17 @@ import (
 	"time"
 
 	"github.com/jayfaust3/auth.api/pkg/models/application/user"
-	"github.com/jayfaust3/auth.api/pkg/models/messaging"
+	// "github.com/jayfaust3/auth.api/pkg/models/messaging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+type rabitMessage[TData any] struct {
+	Data TData `json:"Data"`
+}
+
+type getUserByEmailRequest struct {
+	Email string
+}
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -37,53 +45,57 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	rabbitExchange := "GetUserByEmail"
 	rabbitQueue := "GetUserByEmail"
 
-	q, err := ch.QueueDeclare(
-		rabbitQueue, // name
-		false,       // durable
-		false,       // delete when unused
-		true,        // exclusive
-		false,       // noWait
-		nil,         // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
-
 	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
+		rabbitQueue, // queue
+		"",          // consumer
+		true,        // auto-ack
+		false,       // exclusive
+		false,       // no-local
+		false,       // no-wait
+		nil,         // args
 	)
 	failOnError(err, "Failed to register a consumer")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	response := ""
-	err = ch.PublishWithContext(ctx,
-		rabbitExchange, // exchange
-		rabbitQueue,    // routing key
-		false,          // mandatory
-		false,          // immediate
-		amqp.Publishing{
-			ContentType:   "text/plain",
-			CorrelationId: "",
-			ReplyTo:       q.Name,
-			Body:          []byte(response),
-		})
-	failOnError(err, "Failed to publish a message")
+	var request getUserByEmailRequest
+	request.Email = email
+	var requestMessage rabitMessage[getUserByEmailRequest]
+	requestMessage.Data = request
 
-	for d := range msgs {
-		messageDataBytes := d.Body
-		// messageDataJSON := string(messageDataBytes)
-		var messageData messaging.Message[user.User]
-		err := json.Unmarshal(messageDataBytes, &messageData)
+	encodedMessage, err := json.Marshal(requestMessage)
 
-		failOnError(err, "Failed to extract user from message")
-		res = messageData.Data
-		break
+	if err == nil {
+		log.Printf("publishing message: %s", string(encodedMessage))
+
+		err = ch.PublishWithContext(ctx,
+			rabbitExchange, // exchange
+			rabbitQueue,    // routing key
+			false,          // mandatory
+			false,          // immediate
+			amqp.Publishing{
+				ContentType:   "text/plain",
+				CorrelationId: "",
+				ReplyTo:       rabbitQueue,
+				Body:          []byte(string(encodedMessage)),
+			})
+
+		failOnError(err, "Failed to publish a message")
+
+		for d := range msgs {
+			log.Printf("processing message")
+			messageDataBytes := d.Body
+			log.Printf("message data: %s", string(messageDataBytes))
+			var messageData rabitMessage[user.User]
+			err := json.Unmarshal(messageDataBytes, &messageData)
+
+			failOnError(err, "Failed to extract user from message")
+			res = messageData.Data
+			break
+		}
+	} else {
+		failOnError(err, "Failed to encode message")
 	}
 
 	return
