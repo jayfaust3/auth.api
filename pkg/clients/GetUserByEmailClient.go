@@ -9,16 +9,12 @@ import (
 	"time"
 
 	"github.com/jayfaust3/auth.api/pkg/models/application/user"
-	// "github.com/jayfaust3/auth.api/pkg/models/messaging"
+	"github.com/jayfaust3/auth.api/pkg/models/messaging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type rabitMessage[TData any] struct {
-	Data TData `json:"Data"`
-}
-
 type getUserByEmailRequest struct {
-	Email string
+	Email string `json:"email"`
 }
 
 func failOnError(err error, msg string) {
@@ -59,9 +55,13 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// var request getUserByEmailRequest
+	// request.Email = email
+	// var requestMessage rabitMessage[getUserByEmailRequest]
+	// requestMessage.Data = request
 	var request getUserByEmailRequest
 	request.Email = email
-	var requestMessage rabitMessage[getUserByEmailRequest]
+	var requestMessage messaging.Message[getUserByEmailRequest]
 	requestMessage.Data = request
 
 	encodedMessage, err := json.Marshal(requestMessage)
@@ -87,7 +87,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 			log.Printf("processing message")
 			messageDataBytes := d.Body
 			log.Printf("message data: %s", string(messageDataBytes))
-			var messageData rabitMessage[user.User]
+			var messageData messaging.Message[user.User]
 			err := json.Unmarshal(messageDataBytes, &messageData)
 
 			failOnError(err, "Failed to extract user from message")

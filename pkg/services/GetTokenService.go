@@ -21,7 +21,7 @@ func GetToken(encodedToken string) (string, error) {
 	user, err := clients.GetUserFromEmail(email)
 
 	if err != nil {
-		log.Print("client error occurred")
+		return encodedToken, err
 	} else {
 		userId := user.Id
 		log.Print("User found, id: " + userId)
