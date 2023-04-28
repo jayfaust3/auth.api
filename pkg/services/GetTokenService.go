@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -23,8 +24,15 @@ func GetToken(encodedToken string) (string, error) {
 	if err != nil {
 		return encodedToken, err
 	} else {
-		userId := user.Id
-		log.Print("User found, id: " + userId)
+		// userId := user.Id
+		// log.Print("User found, id: " + userId)
+		encodedUser, encodingError := json.Marshal(user)
+		if encodingError != nil {
+			log.Print("error occurred while decoding user, error: " + encodingError.Error())
+		} else {
+			log.Print("user: " + string(encodedUser))
+		}
+
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, decodedToken)

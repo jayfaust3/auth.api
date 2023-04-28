@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -21,6 +22,18 @@ func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
+}
+
+func randomString(l int) string {
+	bytes := make([]byte, l)
+	for i := 0; i < l; i++ {
+		bytes[i] = byte(randInt(65, 90))
+	}
+	return string(bytes)
+}
+
+func randInt(min int, max int) int {
+	return min + rand.Intn(max-min)
 }
 
 func GetUserFromEmail(email string) (res user.User, err error) {
@@ -52,13 +65,11 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	)
 	failOnError(err, "Failed to register a consumer")
 
+	corrId := randomString(32)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// var request getUserByEmailRequest
-	// request.Email = email
-	// var requestMessage rabitMessage[getUserByEmailRequest]
-	// requestMessage.Data = request
 	var request getUserByEmailRequest
 	request.Email = email
 	var requestMessage messaging.Message[getUserByEmailRequest]
@@ -75,8 +86,8 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 			false,          // mandatory
 			false,          // immediate
 			amqp.Publishing{
-				ContentType:   "text/plain",
-				CorrelationId: "",
+				ContentType:   "application/json",
+				CorrelationId: corrId,
 				ReplyTo:       rabbitQueue,
 				Body:          []byte(string(encodedMessage)),
 			})
@@ -87,12 +98,15 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 			log.Printf("processing message")
 			messageDataBytes := d.Body
 			log.Printf("message data: %s", string(messageDataBytes))
-			var messageData messaging.Message[user.User]
-			err := json.Unmarshal(messageDataBytes, &messageData)
 
-			failOnError(err, "Failed to extract user from message")
-			res = messageData.Data
-			break
+			if d.CorrelationId == corrId {
+				var messageData messaging.Message[user.User]
+				err := json.Unmarshal(messageDataBytes, &messageData)
+
+				failOnError(err, "Failed to extract user from message")
+				res = messageData.Data
+				break
+			}
 		}
 	} else {
 		failOnError(err, "Failed to encode message")
