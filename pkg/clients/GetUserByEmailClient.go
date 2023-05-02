@@ -67,7 +67,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 	corrId := randomString(32)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	var request getUserByEmailRequest
@@ -94,12 +94,12 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 		failOnError(err, "Failed to publish a message")
 
-		for d := range msgs {
+		for msg := range msgs {
 			log.Printf("processing message")
-			messageDataBytes := d.Body
+			messageDataBytes := msg.Body
 			log.Printf("message data: %s", string(messageDataBytes))
 
-			if d.CorrelationId == corrId {
+			if msg.CorrelationId == corrId {
 				var messageData messaging.Message[user.User]
 				err := json.Unmarshal(messageDataBytes, &messageData)
 
