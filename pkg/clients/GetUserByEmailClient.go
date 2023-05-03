@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jayfaust3/auth.api/pkg/models/application/user"
 	"github.com/jayfaust3/auth.api/pkg/models/messaging"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -22,18 +22,6 @@ func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
-}
-
-func randomString(l int) string {
-	bytes := make([]byte, l)
-	for i := 0; i < l; i++ {
-		bytes[i] = byte(randInt(65, 90))
-	}
-	return string(bytes)
-}
-
-func randInt(min int, max int) int {
-	return min + rand.Intn(max-min)
 }
 
 func GetUserFromEmail(email string) (res user.User, err error) {
@@ -65,7 +53,8 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	corrId := randomString(32)
+	corrId := uuid.New().String()
+	log.Printf("generated correlation id: %s", corrId)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
