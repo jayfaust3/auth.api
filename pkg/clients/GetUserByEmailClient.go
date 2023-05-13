@@ -42,21 +42,33 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	rabbitExchange := "GetUserByEmail"
 	rabbitQueue := "GetUserByEmail"
 
+	replyToQueue, err := ch.QueueDeclare(
+		fmt.Sprintf("%s-reply-to", rabbitQueue), // name
+		false,                                   // durable
+		false,                                   // delete when unused
+		true,                                    // exclusive
+		false,                                   // noWait
+		nil,                                     // arguments
+	)
+	replyToQueueName := replyToQueue.Name
+
+	ch.QueueBind(replyToQueueName, replyToQueueName, replyToQueueName, false, nil)
+
 	msgs, err := ch.Consume(
-		rabbitQueue, // queue
-		"",          // consumer
-		true,        // auto-ack
-		false,       // exclusive
-		false,       // no-local
-		false,       // no-wait
-		nil,         // args
+		replyToQueue.Name, // queue
+		"",                // consumer
+		true,              // auto-ack
+		false,             // exclusive
+		false,             // no-local
+		false,             // no-wait
+		nil,               // args
 	)
 	failOnError(err, "Failed to register a consumer")
 
 	corrId := uuid.New().String()
 	log.Printf("generated correlation id: %s", corrId)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
 	var request getUserByEmailRequest
@@ -77,7 +89,10 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 			amqp.Publishing{
 				ContentType:   "application/json",
 				CorrelationId: corrId,
-				ReplyTo:       rabbitQueue,
+				DeliveryMode:  amqp.Transient,
+				MessageId:     uuid.New().String(),
+				Timestamp:     time.Now(),
+				ReplyTo:       replyToQueueName,
 				Body:          []byte(string(encodedMessage)),
 			})
 
@@ -85,16 +100,24 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 		for msg := range msgs {
 			log.Printf("processing message")
+
+			encodedMessage, _ = json.Marshal(msg)
+			log.Printf("message: %s", string(encodedMessage))
+
 			messageDataBytes := msg.Body
 			log.Printf("message data: %s", string(messageDataBytes))
 
 			if msg.CorrelationId == corrId {
-				var messageData messaging.Message[user.User]
-				err := json.Unmarshal(messageDataBytes, &messageData)
+				log.Printf("correlation id matches")
 
-				failOnError(err, "Failed to extract user from message")
-				res = messageData.Data
-				break
+				if !msg.Redelivered {
+					var messageData messaging.Message[user.User]
+					err := json.Unmarshal(messageDataBytes, &messageData)
+
+					failOnError(err, "Failed to extract user from message")
+					res = messageData.Data
+					break
+				}
 			}
 		}
 	} else {
