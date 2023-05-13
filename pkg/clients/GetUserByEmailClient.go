@@ -101,23 +101,17 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 		for msg := range msgs {
 			log.Printf("processing message")
 
-			encodedMessage, _ = json.Marshal(msg)
-			log.Printf("message: %s", string(encodedMessage))
-
-			messageDataBytes := msg.Body
-			log.Printf("message data: %s", string(messageDataBytes))
-
 			if msg.CorrelationId == corrId {
 				log.Printf("correlation id matches")
 
-				if !msg.Redelivered {
-					var messageData messaging.Message[user.User]
-					err := json.Unmarshal(messageDataBytes, &messageData)
+				messageDataBytes := msg.Body
 
-					failOnError(err, "Failed to extract user from message")
-					res = messageData.Data
-					break
-				}
+				var messageData messaging.Message[user.User]
+				err := json.Unmarshal(messageDataBytes, &messageData)
+
+				failOnError(err, "Failed to extract user from message")
+				res = messageData.Data
+				break
 			}
 		}
 	} else {
