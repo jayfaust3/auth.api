@@ -9,22 +9,27 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jayfaust3/auth.api/pkg/models/application/user"
+	"github.com/jayfaust3/auth.api/pkg/models/application/permission"
 	"github.com/jayfaust3/auth.api/pkg/models/messaging"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type getUserByEmailRequest struct {
-	Email string `json:"email"`
+type getPermissionsByEntityRequest struct {
+	ActorType int `json:"actorType"`
+	EntityId string `json:"entityId"`
 }
 
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Panicf("%s: %s", msg, err)
+// func failOnError(err error, msg string) {
+// 	if err != nil {
+// 		log.Panicf("%s: %s", msg, err)
+// 	}
+// }
+
+func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Scope, err error) {
+	if actorType != 1 {
+		actorType = 0
 	}
-}
 
-func GetUserFromEmail(email string) (res user.User, err error) {
 	rabbitUserName := os.Getenv("RABBITMQ_USERNAME")
 	rabbitPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitHost := os.Getenv("RABBITMQ_HOST")
@@ -39,8 +44,8 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	rabbitExchange := "GetUserByEmail"
-	rabbitQueue := "GetUserByEmail"
+	rabbitExchange := "exchange:rpc"
+	rabbitQueue := "queue:get-permissions-by-entity"
 
 	replyToQueue, err := ch.QueueDeclare(
 		fmt.Sprintf("%s-reply-to", rabbitQueue), // name
@@ -70,9 +75,10 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	var request getUserByEmailRequest
-	request.Email = email
-	var requestMessage messaging.Message[getUserByEmailRequest]
+	var request getPermissionsByEntityRequest
+	request.ActorType = actorType
+	request.EntityId = entityId
+	var requestMessage messaging.Message[getPermissionsByEntityRequest]
 	requestMessage.Data = request
 
 	encodedMessage, err := json.Marshal(requestMessage)
@@ -105,10 +111,10 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 				messageDataBytes := msg.Body
 
-				var messageData messaging.Message[user.User]
+				var messageData messaging.Message[[]permission.Scope]
 				err := json.Unmarshal(messageDataBytes, &messageData)
 
-				failOnError(err, "Failed to extract user from message")
+				failOnError(err, "Failed to extract permissions from message")
 				res = messageData.Data
 				break
 			}
