@@ -8,6 +8,6 @@ type TokenPayload struct {
 	UserId        string `json:"userId"`
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
-	Scope         string `json:"scope"`
+	Scope         string `json:"scp"`
 	jwt.StandardClaims
 }
