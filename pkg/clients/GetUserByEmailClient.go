@@ -110,6 +110,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 				failOnError(err, "Failed to extract user from message")
 				res = messageData.Data
+				conn.Close()
 				break
 			}
 		}

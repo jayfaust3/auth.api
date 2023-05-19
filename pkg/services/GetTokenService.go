@@ -44,6 +44,8 @@ func GetToken(encodedToken string) (string, error) {
 			log.Print(fmt.Sprintf("Applying the following scopes to the token: %s", scope))
 
 			decodedToken.Scope = scope
+		} else {
+			log.Fatal(fmt.Sprintf("Encountered the following error while fetcing permissions: %s", err.Error()))
 		}
 	}
 

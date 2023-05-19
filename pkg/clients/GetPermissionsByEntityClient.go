@@ -15,8 +15,8 @@ import (
 )
 
 type getPermissionsByEntityRequest struct {
-	ActorType int `json:"actorType"`
-	EntityId string `json:"entityId"`
+	ActorType int    `json:"actorType"`
+	EntityId  string `json:"entityId"`
 }
 
 // func failOnError(err error, msg string) {
@@ -116,6 +116,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 
 				failOnError(err, "Failed to extract permissions from message")
 				res = messageData.Data
+				conn.Close()
 				break
 			}
 		}
