@@ -45,6 +45,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 		false,                                   // noWait
 		nil,                                     // arguments
 	)
+	utils.FailOnError(err, "Failed to declare queue")
 	replyToQueueName := replyToQueue.Name
 
 	ch.QueueBind(replyToQueueName, replyToQueueName, replyToQueueName, false, nil)
