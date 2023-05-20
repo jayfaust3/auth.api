@@ -1,7 +1,6 @@
 package services
 
 import (
-	// "crypto/rsa"
 	"errors"
 	"fmt"
 	"os"
@@ -14,10 +13,8 @@ import (
 type TokenPayload = token.TokenPayload
 
 func ValidateToken(encodedToken string) (token.TokenPayload, string, error) {
-	// func ValidateToken(encodedToken string) (token.TokenPayload, rsa.PublicKey, error) {
 	claimsStruct := token.TokenPayload{}
 
-	// var publicKey rsa.PublicKey
 	var pemKey string
 
 	token, err := jwt.ParseWithClaims(
@@ -35,8 +32,6 @@ func ValidateToken(encodedToken string) (token.TokenPayload, string, error) {
 
 			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
 
-			// publicKey = *key
-
 			if err != nil {
 				return nil, err
 			}
@@ -46,32 +41,26 @@ func ValidateToken(encodedToken string) (token.TokenPayload, string, error) {
 	)
 
 	if err != nil {
-		// return TokenPayload{}, publicKey, err
 		return TokenPayload{}, pemKey, err
 	}
 
 	claims, ok := token.Claims.(*TokenPayload)
 
 	if !ok {
-		// return TokenPayload{}, publicKey, errors.New("Invalid token")
 		return TokenPayload{}, pemKey, errors.New("Invalid token")
 	}
 
 	if claims.Issuer != os.Getenv("AUTH_ISSUER") {
-		// return TokenPayload{}, publicKey, errors.New("iss is invalid")
 		return TokenPayload{}, pemKey, errors.New("iss is invalid")
 	}
 
 	if claims.Audience != os.Getenv("AUTH_AUDIENCE") {
-		// return TokenPayload{}, publicKey, errors.New("aud is invalid")
 		return TokenPayload{}, pemKey, errors.New("aud is invalid")
 	}
 
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
-		// return TokenPayload{}, publicKey, errors.New("JWT is expired")
 		return TokenPayload{}, pemKey, errors.New("JWT is expired")
 	}
 
-	// return *claims, publicKey, nil
 	return *claims, pemKey, nil
 }

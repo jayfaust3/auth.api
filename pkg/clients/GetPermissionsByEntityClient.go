@@ -75,11 +75,12 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	var request getPermissionsByEntityRequest
-	request.ActorType = actorType
-	request.EntityId = entityId
-	var requestMessage messaging.Message[getPermissionsByEntityRequest]
-	requestMessage.Data = request
+	requestMessage := messaging.Message[getPermissionsByEntityRequest]{
+		Data: getPermissionsByEntityRequest{
+			ActorType: actorType,
+			EntityId:  entityId,
+		},
+	}
 
 	encodedMessage, err := json.Marshal(requestMessage)
 
@@ -116,7 +117,6 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 
 				failOnError(err, "Failed to extract permissions from message")
 				res = messageData.Data
-				conn.Close()
 				break
 			}
 		}

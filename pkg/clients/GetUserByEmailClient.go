@@ -70,10 +70,11 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	var request getUserByEmailRequest
-	request.Email = email
-	var requestMessage messaging.Message[getUserByEmailRequest]
-	requestMessage.Data = request
+	requestMessage := messaging.Message[getUserByEmailRequest]{
+		Data: getUserByEmailRequest{
+			Email: email,
+		},
+	}
 
 	encodedMessage, err := json.Marshal(requestMessage)
 
@@ -110,7 +111,6 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 
 				failOnError(err, "Failed to extract user from message")
 				res = messageData.Data
-				conn.Close()
 				break
 			}
 		}

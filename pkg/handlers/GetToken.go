@@ -13,24 +13,16 @@ import (
 func GetToken(w http.ResponseWriter, r *http.Request) {
 	authHeaderValue := r.Header.Get("Authorization")
 
-	var encodedToken string
-
-	if strings.Contains(authHeaderValue, "Bearer") {
-		encodedToken = strings.ReplaceAll(authHeaderValue, "Bearer ", "")
-	} else {
-		encodedToken = authHeaderValue
-	}
+	encodedToken := strings.ReplaceAll(authHeaderValue, "Bearer ", "")
 
 	generatedToken, err := services.GetToken(encodedToken)
 
 	if err == nil {
-		var apiResponse responses.ApiResponse[auth.AuthTokenResponse]
-
-		var tokenResponse auth.AuthTokenResponse
-
-		tokenResponse.AuthToken = generatedToken
-
-		apiResponse.Data = tokenResponse
+		apiResponse := responses.ApiResponse[auth.AuthTokenResponse]{
+			Data: auth.AuthTokenResponse{
+				AuthToken: generatedToken,
+			},
+		}
 
 		utils.RespondWithJSON(w, 200, apiResponse)
 	} else {
