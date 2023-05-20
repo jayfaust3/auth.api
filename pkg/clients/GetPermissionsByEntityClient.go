@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jayfaust3/auth.api/pkg/models/application/permission"
 	"github.com/jayfaust3/auth.api/pkg/models/messaging"
+	"github.com/jayfaust3/auth.api/pkg/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -18,12 +19,6 @@ type getPermissionsByEntityRequest struct {
 	ActorType int    `json:"actorType"`
 	EntityId  string `json:"entityId"`
 }
-
-// func failOnError(err error, msg string) {
-// 	if err != nil {
-// 		log.Panicf("%s: %s", msg, err)
-// 	}
-// }
 
 func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Scope, err error) {
 	if actorType != 1 {
@@ -37,11 +32,11 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 	rabbitURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitUserName, rabbitPassword, rabbitHost, rabbitPort)
 
 	conn, err := amqp.Dial(rabbitURL)
-	failOnError(err, "Failed to connect to RabbitMQ")
+	utils.FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
 	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
+	utils.FailOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
 	rabbitExchange := "exchange:rpc"
@@ -68,7 +63,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 		false,             // no-wait
 		nil,               // args
 	)
-	failOnError(err, "Failed to register a consumer")
+	utils.FailOnError(err, "Failed to register a consumer")
 
 	corrId := uuid.New().String()
 
@@ -102,7 +97,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 				Body:          []byte(string(encodedMessage)),
 			})
 
-		failOnError(err, "Failed to publish a message")
+		utils.FailOnError(err, "Failed to publish a message")
 
 		for msg := range msgs {
 			log.Printf("processing message")
@@ -115,13 +110,13 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 				var messageData messaging.Message[[]permission.Scope]
 				err := json.Unmarshal(messageDataBytes, &messageData)
 
-				failOnError(err, "Failed to extract permissions from message")
+				utils.FailOnError(err, "Failed to extract permissions from message")
 				res = messageData.Data
 				break
 			}
 		}
 	} else {
-		failOnError(err, "Failed to encode message")
+		utils.FailOnError(err, "Failed to encode message")
 	}
 
 	return

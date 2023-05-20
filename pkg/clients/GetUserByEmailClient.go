@@ -11,17 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jayfaust3/auth.api/pkg/models/application/user"
 	"github.com/jayfaust3/auth.api/pkg/models/messaging"
+	"github.com/jayfaust3/auth.api/pkg/utils"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type getUserByEmailRequest struct {
 	Email string `json:"email"`
-}
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Panicf("%s: %s", msg, err)
-	}
 }
 
 func GetUserFromEmail(email string) (res user.User, err error) {
@@ -32,11 +27,11 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	rabbitURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbitUserName, rabbitPassword, rabbitHost, rabbitPort)
 
 	conn, err := amqp.Dial(rabbitURL)
-	failOnError(err, "Failed to connect to RabbitMQ")
+	utils.FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
 	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
+	utils.FailOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
 	rabbitExchange := "GetUserByEmail"
@@ -63,7 +58,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 		false,             // no-wait
 		nil,               // args
 	)
-	failOnError(err, "Failed to register a consumer")
+	utils.FailOnError(err, "Failed to register a consumer")
 
 	corrId := uuid.New().String()
 
@@ -96,7 +91,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 				Body:          []byte(string(encodedMessage)),
 			})
 
-		failOnError(err, "Failed to publish a message")
+		utils.FailOnError(err, "Failed to publish a message")
 
 		for msg := range msgs {
 			log.Printf("processing message")
@@ -109,13 +104,13 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 				var messageData messaging.Message[user.User]
 				err := json.Unmarshal(messageDataBytes, &messageData)
 
-				failOnError(err, "Failed to extract user from message")
+				utils.FailOnError(err, "Failed to extract user from message")
 				res = messageData.Data
 				break
 			}
 		}
 	} else {
-		failOnError(err, "Failed to encode message")
+		utils.FailOnError(err, "Failed to encode message")
 	}
 
 	return
