@@ -64,7 +64,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 		false,             // no-wait
 		nil,               // args
 	)
-	utils.FailOnError(err, fmt.Sprintf("Failed to register a consumer, channel is closed? %t", ch.IsClosed()))
+	utils.FailOnError(err, "Failed to register a consumert")
 
 	corrId := uuid.New().String()
 
@@ -107,6 +107,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 				log.Printf("correlation id matches")
 
 				messageDataBytes := msg.Body
+				log.Printf(fmt.Sprintf("permission data: %s", string(messageDataBytes)))
 
 				var messageData messaging.Message[[]permission.Scope]
 				err := json.Unmarshal(messageDataBytes, &messageData)

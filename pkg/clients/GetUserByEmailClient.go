@@ -101,6 +101,7 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 				log.Printf("correlation id matches")
 
 				messageDataBytes := msg.Body
+				log.Printf(fmt.Sprintf("user data: %s", string(messageDataBytes)))
 
 				var messageData messaging.Message[user.User]
 				err := json.Unmarshal(messageDataBytes, &messageData)
