@@ -53,7 +53,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 	utils.FailOnError(err, "Failed to declare queue")
 	replyToQueueName := replyToQueue.Name
 
-	ch.QueueBind(replyToQueueName, replyToQueueName, rabbitExchange, false, nil)
+	ch.QueueBind(replyToQueueName, replyToQueueName, replyToQueueName, false, nil)
 
 	msgs, err := ch.Consume(
 		replyToQueue.Name, // queue
