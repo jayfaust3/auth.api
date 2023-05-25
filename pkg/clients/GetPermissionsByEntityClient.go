@@ -53,7 +53,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 	utils.FailOnError(err, "Failed to declare queue")
 	replyToQueueName := replyToQueue.Name
 
-	ch.QueueBind(replyToQueueName, replyToQueueName, replyToQueueName, false, nil)
+	ch.QueueBind(replyToQueueName, replyToQueueName, rabbitExchange, false, nil)
 
 	msgs, err := ch.Consume(
 		replyToQueue.Name, // queue
@@ -64,7 +64,7 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 		false,             // no-wait
 		nil,               // args
 	)
-	utils.FailOnError(err, "Failed to register a consumert")
+	utils.FailOnError(err, "Failed to register a consumer")
 
 	corrId := uuid.New().String()
 
