@@ -39,21 +39,39 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 	utils.FailOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	rabbitExchange := "exchange:rpc"
-	rabbitQueue := "queue:get-permissions-by-entity"
+	exchangeName := "exchange:rpc:permission-api"
+	queueName := "queue:get-permissions-by-entity"
+	replyToQueueAndExchangeName := fmt.Sprintf("%s-reply-to", queueName)
+
+	err = ch.ExchangeDeclare(
+		replyToQueueAndExchangeName,
+		"fanout",
+		false,
+		true,
+		false,
+		false,
+		nil,
+	)
+	utils.FailOnError(err, "Failed to declare reply to exchange")
 
 	replyToQueue, err := ch.QueueDeclare(
-		fmt.Sprintf("%s-reply-to", rabbitQueue), // name
-		false,                                   // durable
-		false,                                   // delete when unused
-		true,                                    // exclusive
-		false,                                   // noWait
-		nil,                                     // arguments
+		replyToQueueAndExchangeName, // name
+		false,                       // durable
+		true,                        // delete when unused
+		true,                        // exclusive
+		false,                       // noWait
+		nil,                         // arguments
 	)
-	utils.FailOnError(err, "Failed to declare queue")
-	replyToQueueName := replyToQueue.Name
+	utils.FailOnError(err, "Failed to declare reply to queue")
 
-	ch.QueueBind(replyToQueueName, replyToQueueName, rabbitExchange, false, nil)
+	err = ch.QueueBind(
+		replyToQueueAndExchangeName,
+		replyToQueueAndExchangeName,
+		replyToQueueAndExchangeName,
+		false,
+		nil,
+	)
+	utils.FailOnError(err, "Failed to bind reply to exchange and queue")
 
 	msgs, err := ch.Consume(
 		replyToQueue.Name, // queue
@@ -84,17 +102,17 @@ func GetPermissionsByEntity(entityId string, actorType int) (res []permission.Sc
 		log.Printf("publishing message: %s", string(encodedMessage))
 
 		err = ch.PublishWithContext(ctx,
-			rabbitExchange, // exchange
-			rabbitQueue,    // routing key
-			false,          // mandatory
-			false,          // immediate
+			exchangeName, // exchange
+			queueName,    // routing key
+			false,        // mandatory
+			false,        // immediate
 			amqp.Publishing{
 				ContentType:   "application/json",
 				CorrelationId: corrId,
 				DeliveryMode:  amqp.Transient,
 				MessageId:     uuid.New().String(),
 				Timestamp:     time.Now(),
-				ReplyTo:       replyToQueueName,
+				ReplyTo:       replyToQueueAndExchangeName,
 				Body:          []byte(string(encodedMessage)),
 			})
 
