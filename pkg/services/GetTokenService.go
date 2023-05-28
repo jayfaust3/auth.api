@@ -28,6 +28,8 @@ func GetToken(encodedToken string) (string, error) {
 		userId := user.Id
 		log.Print(fmt.Sprintf("User found, id: %s", userId))
 
+		decodedToken.UserId = userId
+
 		permissions, err := clients.GetPermissionsByEntity(userId, 0)
 
 		if err == nil {
