@@ -34,16 +34,28 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 	utils.FailOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	rabbitExchange := "GetUserByEmail"
-	rabbitQueue := "GetUserByEmail"
+	exchangeName := "GetUserByEmail"
+	queueName := "GetUserByEmail"
+	replyToQueueAndExchangeName := fmt.Sprintf("%s-reply-to", queueName)
+
+	err = ch.ExchangeDeclare(
+		replyToQueueAndExchangeName,
+		"fanout",
+		false,
+		true,
+		false,
+		false,
+		nil,
+	)
+	utils.FailOnError(err, "Failed to declare reply to exchange")
 
 	replyToQueue, err := ch.QueueDeclare(
-		fmt.Sprintf("%s-reply-to", rabbitQueue), // name
-		false,                                   // durable
-		false,                                   // delete when unused
-		true,                                    // exclusive
-		false,                                   // noWait
-		nil,                                     // arguments
+		replyToQueueAndExchangeName, // name
+		false,                       // durable
+		false,                       // delete when unused
+		true,                        // exclusive
+		false,                       // noWait
+		nil,                         // arguments
 	)
 	utils.FailOnError(err, "Failed to declare queue")
 	replyToQueueName := replyToQueue.Name
@@ -78,10 +90,10 @@ func GetUserFromEmail(email string) (res user.User, err error) {
 		log.Printf("publishing message: %s", string(encodedMessage))
 
 		err = ch.PublishWithContext(ctx,
-			rabbitExchange, // exchange
-			rabbitQueue,    // routing key
-			false,          // mandatory
-			false,          // immediate
+			exchangeName, // exchange
+			queueName,    // routing key
+			false,        // mandatory
+			false,        // immediate
 			amqp.Publishing{
 				ContentType:   "application/json",
 				CorrelationId: corrId,
